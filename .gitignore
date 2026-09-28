@@ -1,0 +1,25 @@
+# Environment
+.venv/
+
+# Python bytecode and tool caches
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Simulation output
+results/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
