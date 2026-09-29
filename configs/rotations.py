@@ -14,7 +14,6 @@ from shamansim import (
     WeaponImbue,
 )
 
-
 def stormstrike(s: SimState) -> SpellChoice:
     """Stormstrike, then an empowered Earth Shock; Lightning Bolt at 5 Maelstrom stacks."""
     sb = s.spells
@@ -73,10 +72,10 @@ ROTATIONS: list[Rotation] = [
         "Stormstrike WF",
         "Stormstrike, Earth Shock, Maelstrom Lightning Bolt.",
         stormstrike,
-        WeaponImbue.WINDFURY,
+        WeaponImbue.ROCKBITER,
     ),
     *_for_encounters(
-        "Shocks WF", "Searing Totem, Flame Shock, Earth Shock.", shocks, WeaponImbue.WINDFURY
+        "Shocks WF", "Searing Totem, Flame Shock, Earth Shock.", shocks, WeaponImbue.ROCKBITER
     ),
     *_for_encounters(
         "Shocks RB", "Searing Totem, Flame Shock, Earth Shock.", shocks, WeaponImbue.ROCKBITER
