@@ -16,7 +16,7 @@ dist/
 *.egg-info/
 
 # Simulation output
-results/
+# results/
 
 # Editor / OS
 .vscode/
