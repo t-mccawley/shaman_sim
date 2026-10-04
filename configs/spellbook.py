@@ -18,7 +18,7 @@ from shamansim import BuffData, DotData, ImbueRank, SpellId, SpellRank, TotemDat
 
 SPELL_RANKS: dict[SpellId, list[SpellRank]] = {
     SpellId.STORMSTRIKE: [
-        SpellRank(rank=1, level=40, mana_cost=125, cooldown=8, wowhead_id=17364),
+        SpellRank(rank=1, level=30, mana_cost=125, cooldown=8, wowhead_id=17364),
     ],
     SpellId.LIGHTNING_BOLT: [
         SpellRank(rank=1, level=1, min_damage=15, max_damage=17, mana_cost=15, cast_time=1.5, wowhead_id=403),

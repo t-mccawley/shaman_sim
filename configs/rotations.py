@@ -76,7 +76,7 @@ ROTATIONS: list[Rotation] = [
         WeaponImbue.ROCKBITER,
     ),
     *_for_encounters(
-        "Shocks WF", "Searing Totem, Flame Shock, Earth Shock.", shocks, WeaponImbue.ROCKBITER
+        "Shocks WF", "Searing Totem, Flame Shock, Earth Shock.", shocks, WeaponImbue.WINDFURY
     ),
     *_for_encounters(
         "Shocks RB", "Searing Totem, Flame Shock, Earth Shock.", shocks, WeaponImbue.ROCKBITER

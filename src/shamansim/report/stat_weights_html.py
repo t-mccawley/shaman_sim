@@ -70,12 +70,23 @@ def _hover(w: StatWeight) -> str:
 
 
 def _weights_chart(
-    weights: list[StatWeight], title: str, unit: str, confidence: float
+    weights: list[StatWeight],
+    title: str,
+    axis_title: str,
+    value: Callable[[StatWeight], MeanInterval],
+    fmt: Callable[[float], str],
+    confidence: float,
+    reference: float | None = None,
 ) -> go.Figure:
-    """Median DpS per point, CI whiskers, value labels past the whisker; best on top."""
-    ranked = sorted(weights, key=lambda w: w.dps_per_point.mean)
+    """Mean of `value` per stat, CI whiskers, value labels past the whisker; best on top.
+
+    `reference` draws a dashed vertical line, e.g. at EP 1 (attack power).
+    """
+    ranked = sorted(
+        (w for w in weights if not math.isnan(value(w).mean)), key=lambda w: value(w).mean
+    )
     names = [w.stat.info.name for w in ranked]
-    stats = [w.dps_per_point for w in ranked]
+    stats = [value(w) for w in ranked]
     hover = [_hover(w) for w in ranked]
     fig = go.Figure(
         [
@@ -99,7 +110,7 @@ def _weights_chart(
                 x=[max(ci.high, 0.0) for ci in stats],
                 y=names,
                 mode="text",
-                text=[f"  {_sig(ci.mean)}" for ci in stats],
+                text=[f"  {fmt(ci.mean)}" for ci in stats],
                 textposition="middle right",
                 textfont={"color": TEXT_PRIMARY},
                 customdata=hover,
@@ -110,18 +121,20 @@ def _weights_chart(
     style_figure(
         fig,
         f"{title} (mean, whiskers {confidence:.0%} CI)",
-        height=max(200, 56 * len(weights) + 110),
+        height=max(200, 56 * len(ranked) + 110),
     )
     low = min(0.0, *(ci.low for ci in stats))
     high = max(0.0, *(ci.high for ci in stats))
     span = (high - low) or 1.0
     fig.update_layout(showlegend=False, bargap=0.35)
     fig.update_xaxes(
-        title=f"DpS per {unit}",
+        title=axis_title,
         range=[low - 0.02 * span if low < 0 else 0.0, high + 0.22 * span],
         zeroline=True,
         zerolinecolor=TEXT_SECONDARY,
     )
+    if reference is not None:
+        fig.add_vline(x=reference, line={"color": TEXT_SECONDARY, "dash": "dash", "width": 1})
     return fig
 
 
@@ -192,24 +205,38 @@ table.setup td a {{ white-space:normal; }}
 def render_stat_weights(result: StatWeightsResult, meta: MetaConfig) -> str:
     """Build the stat weights report HTML."""
     confidence = meta.confidence_level
+    reference = REFERENCE_STAT.info.name.lower()
+    ep_fig = _weights_chart(
+        result.weights,
+        "EP by stat",
+        f"EP ({reference} = 1)",
+        lambda w: w.ep,
+        _ep,
+        confidence,
+        reference=1.0,
+    )
     groups = [
         ("DpS per point", "point", [w for w in result.weights if not w.stat.info.percent]),
         ("DpS per 1%", "1%", [w for w in result.weights if w.stat.info.percent]),
     ]
-    figs = [
-        _weights_chart(weights, title, unit, confidence)
+    dps_figs = [
+        _weights_chart(
+            weights, title, f"DpS per {unit}", lambda w: w.dps_per_point, _sig, confidence
+        )
         for title, unit, weights in groups
         if weights
     ]
-    divs = "".join(
+    config = {"displaylogo": False, "responsive": True}
+    ep_div = (
         "<div class='card'>"
-        + fig.to_html(
-            full_html=False,
-            include_plotlyjs="cdn" if i == 0 else False,
-            config={"displaylogo": False, "responsive": True},
-        )
+        + ep_fig.to_html(full_html=False, include_plotlyjs="cdn", config=config)
         + "</div>"
-        for i, fig in enumerate(figs)
+    )
+    dps_divs = "".join(
+        "<div class='card'>"
+        + fig.to_html(full_html=False, include_plotlyjs=False, config=config)
+        + "</div>"
+        for fig in dps_figs
     )
     subtitle = " · ".join(
         [
@@ -229,8 +256,9 @@ def render_stat_weights(result: StatWeightsResult, meta: MetaConfig) -> str:
 <h1>ShamanSim stat weights</h1>
 <div class="muted">{subtitle}</div>
 <div class="card">{_setup_html(result)}</div>
-{divs}
+{ep_div}
 <div class="card">{_table(result, confidence)}</div>
+{dps_divs}
 <p class="muted note">Method: the unmodified character and one copy per stat, raised by the
 simulated step, run the same {result.iterations} iterations with the same random seeds.
 DpS per point is the mean of the per-iteration DpS differences divided by the step

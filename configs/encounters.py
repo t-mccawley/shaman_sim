@@ -15,7 +15,7 @@ ENCOUNTERS: list[Encounter] = [
     #     position=Position.BEHIND,
     # ),
     Encounter(
-        display_name="Leveling pulls",
+        display_name="L20 Leveling pulls",
         description="1 same-level mob per pull, fought from the front, for 10 minutes.",
         encounter_type=EncounterType.MULTI_TARGET_LEVELING,
         duration=600,
@@ -24,6 +24,18 @@ ENCOUNTERS: list[Encounter] = [
         enemy_armor=300,
         enemy_level_delta=LevelDelta.SAME,
         position=Position.FRONT,
-        drink_below_mana_pct=40,
+        drink_below_mana_pct=10,
+    ),
+        Encounter(
+        display_name="L30 Leveling pulls",
+        description="1 same-level mob per pull, fought from the front, for 10 minutes.",
+        encounter_type=EncounterType.MULTI_TARGET_LEVELING,
+        duration=600,
+        enemy_count=1,
+        enemy_health=1500,
+        enemy_armor=1500,
+        enemy_level_delta=LevelDelta.SAME,
+        position=Position.FRONT,
+        drink_below_mana_pct=10,
     ),
 ]
