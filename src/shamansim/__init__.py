@@ -11,6 +11,7 @@ from shamansim.model.consumables import Water
 from shamansim.model.encounter import Encounter
 from shamansim.model.meta import MetaConfig
 from shamansim.model.rotation import Rotation, RotationFunction, SpellChoice
+from shamansim.model.stat_weights import Stat, StatWeightsConfig
 from shamansim.spells.definitions import (
     BuffData,
     DotData,
@@ -40,6 +41,8 @@ __all__ = [
     "SpellHandle",
     "SpellId",
     "SpellRank",
+    "Stat",
+    "StatWeightsConfig",
     "TargetView",
     "TotemData",
     "Water",

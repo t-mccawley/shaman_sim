@@ -13,6 +13,9 @@ CHARACTERS: list[Character] = [
         intellect=50,
         spirit=50,
         mana=600,
+        # Copy from the sheet; attack power and melee crit already include them.
+        strength=0,
+        agility=0,
         mp5=0,
         attack_power=100,
         melee_crit=10.05,

@@ -57,6 +57,19 @@ ATTACK_POWER_PER_DPS: Final = 14.0
 ARMOR_BASE: Final = 400.0
 ARMOR_PER_LEVEL: Final = 85.0
 
+# --- Strength and agility (wowsims/sod base_stats.go, shaman) ----------------
+
+ATTACK_POWER_PER_STRENGTH: Final = 2.0
+ATTACK_POWER_PER_AGILITY: Final = 0.0
+# Melee crit percent per agility at the levels wowsims/sod simulated.
+# ESTIMATED between and below these levels: see melee_crit_per_agility.
+MELEE_CRIT_PER_AGILITY_AT_LEVEL: Final[dict[int, float]] = {
+    25: 0.0971,
+    40: 0.0717,
+    50: 0.0600,
+    60: 0.0508,
+}
+
 # --- Mana -------------------------------------------------------------------
 
 # Spirit regen per second: (15 + Spirit / 5) per 2 s tick (wowsims default).

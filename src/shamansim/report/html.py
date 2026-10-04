@@ -37,7 +37,8 @@ GRID: Final = "#e6e5e0"
 FONT: Final = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
 
 
-def _layout(fig: go.Figure, title: str, height: int) -> None:
+def style_figure(fig: go.Figure, title: str, height: int) -> None:
+    """Apply the report's title, colors, fonts, and grid."""
     fig.update_layout(
         title={"text": title, "x": 0, "font": {"size": 16, "color": TEXT_PRIMARY}},
         height=height,
@@ -52,19 +53,19 @@ def _layout(fig: go.Figure, title: str, height: int) -> None:
 
 
 def _character_text(c: Candidate | InvalidCandidate) -> str:
-    return f"{_esc(c.character.display_name)} (L{c.character.level})"
+    return f"{esc(c.character.display_name)} (L{c.character.level})"
 
 
 def _rotation_html(c: Candidate | InvalidCandidate) -> str:
     return (
-        f"<b>{_esc(c.rotation.display_name)}</b><br>"
-        f"<span class='muted'>{_esc(c.rotation.description)} "
-        f"Imbue: {_esc(c.rotation.weapon_imbue.value)}.</span>"
+        f"<b>{esc(c.rotation.display_name)}</b><br>"
+        f"<span class='muted'>{esc(c.rotation.description)} "
+        f"Imbue: {esc(c.rotation.weapon_imbue.value)}.</span>"
     )
 
 
 def _talents_html(c: Candidate | InvalidCandidate) -> str:
-    return f"<a href='{_esc(c.talents.url)}'>{_esc(c.talents.display_name)}</a>"
+    return f"<a href='{esc(c.talents.url)}'>{esc(c.talents.display_name)}</a>"
 
 
 def _hover_html(s: CandidateSummary) -> str:
@@ -77,9 +78,9 @@ def _hover_html(s: CandidateSummary) -> str:
             f"Peak DpS: {s.peak_dps}",
             f"Character: {_character_text(c)}",
             f"Talents: {_talents_html(c)}",
-            f"Rotation: {_esc(c.rotation.display_name)} - {_esc(c.rotation.description)}",
-            f"Weapon imbue: {_esc(c.rotation.weapon_imbue.value)}",
-            f"Encounter: {_esc(c.encounter.display_name)}",
+            f"Rotation: {esc(c.rotation.display_name)} - {esc(c.rotation.description)}",
+            f"Weapon imbue: {esc(c.rotation.weapon_imbue.value)}",
+            f"Encounter: {esc(c.encounter.display_name)}",
         ]
     )
 
@@ -128,7 +129,7 @@ def _dps_chart(summaries: list[CandidateSummary], confidence: float) -> go.Figur
         ]
     )
     title = f"Total and peak DpS (median, whiskers {confidence:.0%} CI)"
-    _layout(fig, title, height=max(260, 64 * len(summaries) + 140))
+    style_figure(fig, title, height=max(260, 64 * len(summaries) + 140))
     fig.update_layout(
         barmode="group",
         bargap=0.3,
@@ -173,7 +174,7 @@ def _series_chart(summaries: list[CandidateSummary], warmup_seconds: float) -> g
                 ),
             )
         )
-    _layout(fig, "Median cumulative DpS over time", height=460)
+    style_figure(fig, "Median cumulative DpS over time", height=460)
     fig.update_layout(hovermode="x unified", legend={"orientation": "v"})
     fig.update_xaxes(title="Time (s)")
     settled = [
@@ -218,7 +219,7 @@ def _legend_columns(confidence: float) -> tuple[_Column, ...]:
 
 def _cell(text: str, sort: float | str | None = None, css: str = "") -> str:
     """A table cell; `sort` overrides the value used for sorting and filtering."""
-    attrs = f" data-sort='{_esc(str(sort))}'" if sort is not None else ""
+    attrs = f" data-sort='{esc(str(sort))}'" if sort is not None else ""
     attrs += f" class='{css}'" if css else ""
     return f"<td{attrs}>{text}</td>"
 
@@ -232,7 +233,7 @@ def _legend_row(s: CandidateSummary) -> str:
         top = list(s.blocked_seconds_per_iteration.items())[:3]
         notes.append("Blocked: " + ", ".join(f"{k} ({v:.0f} s)" for k, v in top))
     share = ", ".join(f"{k} {v:.0%}" for k, v in list(s.damage_share.items())[:4])
-    casts = "<br>".join(f"{_esc(k)}: {v:.1f}" for k, v in s.casts_per_iteration.items())
+    casts = "<br>".join(f"{esc(k)}: {v:.1f}" for k, v in s.casts_per_iteration.items())
     total, peak = s.total_dps, s.peak_dps
     blocked = sum(s.blocked_seconds_per_iteration.values())
     cells = (
@@ -241,16 +242,16 @@ def _legend_row(s: CandidateSummary) -> str:
         _cell(f"{total.low:.1f} - {total.high:.1f}", total.low, "num"),
         _cell(f"{peak.median:.1f}", peak.median, "num"),
         _cell(f"{peak.low:.1f} - {peak.high:.1f}", peak.low, "num"),
-        _cell(_esc(c.encounter.display_name), c.encounter.display_name),
+        _cell(esc(c.encounter.display_name), c.encounter.display_name),
         _cell(_rotation_html(c), c.rotation.display_name),
         _cell(_talents_html(c), c.talents.display_name),
         _cell(_character_text(c), c.character.display_name),
         _cell(f"{s.mean_kills:.1f}", s.mean_kills, "num"),
         _cell(f"{s.mean_drinking_time:.0f}", s.mean_drinking_time, "num"),
         _cell(f"{blocked:.0f}", blocked, "num"),
-        _cell(_esc(share)),
+        _cell(esc(share)),
         _cell(casts, css="nowrap"),
-        _cell(_esc("; ".join(notes)), css="muted"),
+        _cell(esc("; ".join(notes)), css="muted"),
     )
     return f"<tr>{''.join(cells)}</tr>"
 
@@ -262,8 +263,8 @@ def _invalid_section(invalid: list[InvalidCandidate]) -> str:
     rows = "".join(
         "<tr>"
         f"<td>{_rotation_html(c)}</td><td>{_talents_html(c)}</td>"
-        f"<td>{_esc(c.encounter.display_name)}</td><td>{_character_text(c)}</td>"
-        f"<td>{'<br>'.join(_esc(r) for r in c.reasons)}</td>"
+        f"<td>{esc(c.encounter.display_name)}</td><td>{_character_text(c)}</td>"
+        f"<td>{'<br>'.join(esc(r) for r in c.reasons)}</td>"
         "</tr>"
         for c in invalid
     )
@@ -281,7 +282,7 @@ def _legend_section(summaries: list[CandidateSummary], confidence: float) -> str
     """Titled, searchable, sortable candidate table (best total DpS first)."""
     headers = "".join(
         f"<th data-col='{i}' data-numeric='{int(col.numeric)}' data-facet='{int(col.facet)}' "
-        f"aria-sort='none' tabindex='0'>{_esc(col.title)}</th>"
+        f"aria-sort='none' tabindex='0'>{esc(col.title)}</th>"
         for i, col in enumerate(_legend_columns(confidence))
     )
     rows = "".join(
@@ -299,7 +300,8 @@ def _legend_section(summaries: list[CandidateSummary], confidence: float) -> str
 <tbody>{rows}</tbody></table></div>"""
 
 
-def _esc(text: str) -> str:
+def esc(text: str) -> str:
+    """Escape text for HTML content and attributes."""
     return html.escape(text, quote=True)
 
 
@@ -371,7 +373,7 @@ _LEGEND_JS: Final = """
 """
 
 
-_CSS: Final = f"""
+BASE_CSS: Final = f"""
 body {{ background:{SURFACE}; color:{TEXT_PRIMARY}; font-family:{FONT}; margin:0; }}
 main {{ max-width:1200px; margin:0 auto; padding:24px 16px 48px; }}
 h1 {{ font-size:22px; margin:0 0 4px; }}
@@ -432,7 +434,7 @@ def render_report(
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ShamanSim Results</title><style>{_CSS}</style></head>
+<title>ShamanSim Results</title><style>{BASE_CSS}</style></head>
 <body><main>
 <h1>ShamanSim results</h1>
 <div class="muted">{subtitle}</div>

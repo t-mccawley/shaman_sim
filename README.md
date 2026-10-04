@@ -18,18 +18,20 @@ uv run shamansim                    # simulate and open the report
 uv run shamansim --no-open          # just write results/shamansim_<timestamp>.html
 uv run shamansim --refresh-talents  # re-download Wowhead talent data first
 uv run shamansim spellbook          # write results/spellbook.csv (use --out - for stdout)
+uv run shamansim stat-weights       # write results/stat_weights_results.html
 ```
 
 ## Configure (`configs/`)
 
 | File | Exports | Notes |
 |---|---|---|
-| `character.py` | `CHARACTERS: list[Character]` | Sheet stats, including melee (attack power, crit, hit, weapon skill bonus) and spells (per-school power, crit, hit). Also the main-hand `Weapon`, water, and `talents_on_sheet`. |
+| `character.py` | `CHARACTERS: list[Character]` | Sheet stats, including strength and agility, melee (attack power, crit, hit, weapon skill bonus) and spells (per-school power, crit, hit). Also the main-hand `Weapon`, water, and `talents_on_sheet`. |
 | `encounters.py` | `ENCOUNTERS: list[Encounter]` | Type, duration, enemy count, health, armor, level delta, and `position` (behind or front; parry only from the front). Leveling encounters also set `drink_below_mana_pct`. |
 | `rotations.py` | `ROTATIONS: list[Rotation]` | A function `(SimState) -> spell or None`, plus a `weapon_imbue` and optional `rank_overrides`. |
 | `talents.py` | `TALENT_URLS: list[str]` | Links from https://www.wowhead.com/forever/talent-calc/shaman |
 | `spellbook.py` | `SPELL_RANKS`, `IMBUE_RANKS` | In-game values per rank. Pre-filled from Wowhead for levels 1-60; mark each rank `confirmed_in_game_date` once checked. |
 | `meta.py` | `META: MetaConfig` | Seed, iterations, tick size, peak-DpS warmup, and confidence level. |
+| `stat_weights.py` | `STAT_WEIGHTS: StatWeightsConfig` | One character, encounter, and rotation (by display name) and one talent link for `shamansim stat-weights`, plus the step simulated for each stat and optional `iterations`. |
 
 `talents_on_sheet` is the talent link that was active when you copied the
 sheet. Its stat talents are removed and each candidate's are applied:
@@ -93,7 +95,46 @@ The report layout is the same as MageSim's:
   run by rank, kills, drinking, and blocked time.
 - An Invalid Candidates section.
 
+### Stat weights
+
+`shamansim stat-weights` estimates how much DpS one more point of each stat is
+worth for the combination in `stat_weights.py`. It writes
+`results/stat_weights_results.html`:
+- a bar chart of DpS per point, and one of DpS per 1% for percent stats, each
+  with a 90% CI;
+- a table of equivalence points (EP): DpS per point divided by attack power's
+  DpS per point. If 1 attack power adds 0.05 DpS and 1 intellect adds 0.10,
+  intellect's EP is 2.0.
+
+The weighted stats are attack power, strength, agility, spell power,
+intellect, spirit, mp5, weapon skill, melee crit and hit, and spell crit and
+hit.
+
+How the estimate works:
+- Each stat is raised by its step, and that copy runs the same iterations, with
+  the same seeds, as the unmodified character. Most of the noise cancels.
+- DpS per point is the mean of the paired differences divided by the step. It
+  is a mean, not a median: damage past an enemy's remaining health is lost, so
+  small changes often leave a run's DpS exactly unchanged.
+- Larger steps reduce noise but average across caps such as hit.
+- Against low-health enemies, values can change with the step size: extra
+  damage pays off in jumps as hits start killing in fewer swings. Compare
+  stats at steps worth about the same damage; strength's default of 25 equals
+  attack power's 50.
+- Strength, agility, and intellect mean gear points. The sheet's talents scale
+  them. Strength and agility add attack power and melee crit (see Modeling),
+  and intellect adds the mana, attack power, and spell power its talents grant.
+
 ## Modeling
+
+**Strength and agility** (wowsims/sod):
+- The sheet's attack power and melee crit already include them; the simulator
+  re-derives both, so talents that scale strength or agility affect them.
+- 1 strength = 2 attack power. Agility gives no attack power.
+- Agility's melee crit depends on level: 0.0971% per point at 25, 0.0717% at 40,
+  0.0600% at 50, 0.0508% at 60. Other levels are interpolated (agility per 1%
+  crit is nearly linear in level), and levels below 25 are extrapolated. That is
+  an estimate.
 
 **Melee** (wowsims/classic):
 - The Classic attack table: miss, dodge, parry from the front, and glancing

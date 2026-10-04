@@ -6,6 +6,7 @@ from shamansim.core.constants import (
     INTELLECT_MANA_THRESHOLD,
     MANA_PER_INTELLECT,
     MAX_LEVEL,
+    MELEE_CRIT_PER_AGILITY_AT_LEVEL,
     MIN_LEVEL,
     SKILL_PER_LEVEL,
 )
@@ -61,6 +62,9 @@ class Character:
     calculator link active when the stats were copied; its stat bonuses
     (Thundering Strikes, Ancestral Knowledge, Mental Dexterity, Mental
     Quickness) are removed before each candidate's talents are applied.
+    `attack_power` and `melee_crit` are sheet totals that already include
+    `strength` and `agility`; set those too so effects that change strength
+    or agility change attack power and crit by the right amount.
     """
 
     display_name: str
@@ -68,6 +72,8 @@ class Character:
     intellect: float
     spirit: float
     mana: float
+    strength: float = 0.0
+    agility: float = 0.0
     mp5: float = 0.0
     attack_power: float = 0.0
     melee_crit: float = 0.0
@@ -102,3 +108,20 @@ def mana_from_intellect(intellect: float) -> float:
     return min(intellect, INTELLECT_MANA_THRESHOLD) + MANA_PER_INTELLECT * max(
         intellect - INTELLECT_MANA_THRESHOLD, 0.0
     )
+
+
+def melee_crit_per_agility(level: int) -> float:
+    """Melee crit percent per point of agility at `level`.
+
+    Agility per 1% crit is close to linear in level, so it is interpolated
+    linearly between the known levels and extrapolated from the nearest
+    segment outside them.
+    """
+    levels = sorted(MELEE_CRIT_PER_AGILITY_AT_LEVEL)
+    # ESTIMATED: levels other than those in MELEE_CRIT_PER_AGILITY_AT_LEVEL.
+    i = min(max(sum(known <= level for known in levels) - 1, 0), len(levels) - 2)
+    low, high = levels[i], levels[i + 1]
+    agility_low = 1.0 / MELEE_CRIT_PER_AGILITY_AT_LEVEL[low]
+    agility_high = 1.0 / MELEE_CRIT_PER_AGILITY_AT_LEVEL[high]
+    agility = agility_low + (agility_high - agility_low) * (level - low) / (high - low)
+    return 1.0 / agility

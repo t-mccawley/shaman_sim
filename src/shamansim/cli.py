@@ -5,16 +5,25 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from shamansim.config_loader import Configs, load_configs, load_spellbook
+from shamansim.config_loader import Configs, load_configs, load_spellbook, load_stat_weights
 from shamansim.experiment.candidates import Candidate, InvalidCandidate, plan_candidates
 from shamansim.experiment.runner import run_all
+from shamansim.experiment.stat_weights import (
+    StatWeightsError,
+    candidate_problems,
+    ranked_by_ep,
+    run_stat_weights,
+    select_candidate,
+)
 from shamansim.experiment.stats import CandidateSummary
 from shamansim.report.html import write_report
+from shamansim.report.stat_weights_html import STAT_WEIGHTS_FILE, write_stat_weights
 from shamansim.spells.export import write_spellbook_csv
 from shamansim.talents.wowhead import refresh_snapshot
 
 RUN_COMMAND = "run"
 SPELLBOOK_COMMAND = "spellbook"
+STAT_WEIGHTS_COMMAND = "stat-weights"
 STDOUT_PATH = "-"
 DEFAULT_SPELLBOOK_CSV = Path("results") / "spellbook.csv"
 
@@ -37,6 +46,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--out",
         default=str(DEFAULT_SPELLBOOK_CSV),
         help=f"CSV path, or '{STDOUT_PATH}' for stdout (default: {DEFAULT_SPELLBOOK_CSV})",
+    )
+    commands.add_parser(
+        STAT_WEIGHTS_COMMAND,
+        help=f"DpS per point of each stat for configs/stat_weights.py; writes {STAT_WEIGHTS_FILE}",
     )
     return parser.parse_args(argv)
 
@@ -79,6 +92,52 @@ def _progress(candidate: Candidate, summary: CandidateSummary) -> None:
     )
 
 
+def _open(path: Path, configs: Configs, no_open: bool) -> None:
+    if configs.meta.open_report and not no_open:
+        webbrowser.open(path.resolve().as_uri())
+
+
+def _stat_weights(configs_dir: Path, no_open: bool) -> int:
+    configs = load_configs(configs_dir)
+    config = load_stat_weights(configs_dir)
+    try:
+        candidate = select_candidate(
+            config, configs.characters, configs.encounters, configs.rotations
+        )
+    except StatWeightsError as error:
+        print(f"stat_weights.py: {error}", file=sys.stderr)
+        return 1
+    problems = candidate_problems(candidate, configs.spellbook, configs.meta)
+    if problems:
+        print("stat_weights.py: this combination is invalid:", file=sys.stderr)
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        return 1
+    iterations = config.iterations or configs.meta.iterations
+    print(
+        f"Stat weights: {candidate.rotation.display_name} | {candidate.talents.display_name} | "
+        f"{candidate.encounter.display_name} | {candidate.character.display_name}, "
+        f"{len(config.steps)} stats, {iterations} iterations each"
+    )
+    result = run_stat_weights(
+        candidate,
+        config.steps,
+        configs.spellbook,
+        configs.meta,
+        iterations,
+        on_done=lambda label, dps: print(f"  {label:<22} {dps:8.1f} DpS"),
+    )
+    for w in ranked_by_ep(result.weights):
+        print(
+            f"  {w.stat.info.name:<14} EP {w.ep.mean:6.2f}   "
+            f"{w.dps_per_point.mean:.4f} DpS per {w.stat.info.unit}"
+        )
+    path = write_stat_weights(result, configs.meta)
+    print(f"Report: {path.resolve()}")
+    _open(path, configs, no_open)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run a ShamanSim command (default: simulate and write the HTML report)."""
     args = _parse_args(argv)
@@ -86,6 +145,8 @@ def main(argv: list[str] | None = None) -> int:
         return _export_spellbook(args.configs, args.out)
     if args.refresh_talents:
         print(f"Talent data refreshed: {refresh_snapshot()}")
+    if args.command == STAT_WEIGHTS_COMMAND:
+        return _stat_weights(args.configs, args.no_open)
     configs = load_configs(args.configs)
     plan = plan_candidates(
         configs.characters,
@@ -109,8 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     invalid = plan.invalid + results.invalid
     path = write_report(results.summaries, invalid, configs.meta)
     print(f"Report: {path.resolve()}")
-    if configs.meta.open_report and not args.no_open:
-        webbrowser.open(path.resolve().as_uri())
+    _open(path, configs, args.no_open)
     return 0
 
 

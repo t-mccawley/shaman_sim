@@ -14,6 +14,7 @@ from shamansim import (
     WeaponImbue,
 )
 
+
 def stormstrike(s: SimState) -> SpellChoice:
     """Stormstrike, then an empowered Earth Shock; Lightning Bolt at 5 Maelstrom stacks."""
     sb = s.spells

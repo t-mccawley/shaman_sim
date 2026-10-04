@@ -100,6 +100,8 @@ class StatTalents:
 
     crit_pct: float = 0.0
     intellect_multiplier: float = 1.0
+    strength_multiplier: float = 1.0
+    agility_multiplier: float = 1.0
     attack_power_per_intellect: float = 0.0
     spell_power_per_intellect: float = 0.0
 

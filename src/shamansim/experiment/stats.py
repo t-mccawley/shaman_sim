@@ -31,9 +31,16 @@ class ConfidenceInterval:
         """Percentile bootstrap: resample with replacement, take each resample's median."""
         resamples = values[rng.integers(0, values.size, size=(samples, values.size))]
         medians = np.median(resamples, axis=1)
+        return cls.from_resamples(float(np.median(values)), medians, confidence)
+
+    @classmethod
+    def from_resamples(
+        cls, estimate: float, resampled: FloatArray, confidence: float
+    ) -> "ConfidenceInterval":
+        """Percentile interval of an estimate's bootstrap resamples."""
         tail = (1.0 - confidence) / 2.0
-        low, high = np.quantile(medians, [tail, 1.0 - tail])
-        return cls(float(np.median(values)), float(low), float(high))
+        low, high = np.quantile(resampled, [tail, 1.0 - tail])
+        return cls(estimate, float(low), float(high))
 
     def __str__(self) -> str:
         return f"{self.median:.1f} ({self.low:.1f} - {self.high:.1f})"

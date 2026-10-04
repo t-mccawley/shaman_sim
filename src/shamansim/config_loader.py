@@ -11,6 +11,7 @@ from shamansim.model.character import Character
 from shamansim.model.encounter import Encounter
 from shamansim.model.meta import MetaConfig
 from shamansim.model.rotation import Rotation
+from shamansim.model.stat_weights import StatWeightsConfig
 from shamansim.spells.definitions import ImbueRank, Spellbook, SpellId, SpellRank
 from shamansim.spells.mechanics import build_catalog, build_imbue_catalog
 from shamansim.talents.build import TalentBuild
@@ -21,6 +22,7 @@ ROTATIONS_FILE: Final = "rotations.py"
 TALENTS_FILE: Final = "talents.py"
 META_FILE: Final = "meta.py"
 SPELLBOOK_FILE: Final = "spellbook.py"
+STAT_WEIGHTS_FILE: Final = "stat_weights.py"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -93,3 +95,11 @@ def load_configs(directory: Path) -> Configs:
         spellbook=load_spellbook(directory),
         meta=meta,
     )
+
+
+def load_stat_weights(directory: Path) -> StatWeightsConfig:
+    """The stat weights selection from stat_weights.py."""
+    config = getattr(_load_module(directory / STAT_WEIGHTS_FILE), "STAT_WEIGHTS", None)
+    if not isinstance(config, StatWeightsConfig):
+        raise TypeError("stat_weights.STAT_WEIGHTS must be a StatWeightsConfig")
+    return config
